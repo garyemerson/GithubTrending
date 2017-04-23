@@ -273,9 +273,20 @@ input::-webkit-calendar-picker-indicator {
 		width: calc(100% - 107px) !important;
 	}
 
-	.select2-container--default .select2-selection--single {
+	.select2-selection--multiple {
+		border-bottom: 1px solid #eee;
+	}
+
+	.select2-container--default .select2-selection--multiple {
 		max-width: 100%;
 		background: rebeccapurple;
+		border-bottom: 1px solid #eee;
+	}
+
+	.select2-container .select2-selection--multiple {
+		max-width: inherit !important;
+		max-height: inherit !important;
+		border-bottom: 1px solid #eee;
 	}
 		
 }
@@ -318,7 +329,7 @@ input::-webkit-calendar-picker-indicator {
 		width: calc(100% - 100px) !important;
 	}
 
-	.select2-container--default .select2-selection--single {
+	.select2-container--default .select2-selection--multiple {
 		max-width: 100%;
 	}
 	

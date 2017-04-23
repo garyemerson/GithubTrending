@@ -35,7 +35,9 @@ $(document).ready(function () {
         }));
     });
     fetch(false);
-    $('#langSelect').select2();
+    $('#langSelect').select2({
+        placeholder: '...'
+    });
     $ugly = setInterval(function(){ onResize(); }, 10);
     setTimeout(function(){ clearInterval($ugly) }, 100);
     $( window ).resize(function() {
@@ -74,35 +76,88 @@ function printEm($json) {
     };
 }
 
+function prune(data) {
+    var prunedData = { results: [] };
+    while (prunedData.results.length < 24) {
+        var langIndex = Math.floor(Math.random() * data.length);
+        var nextResult = data[langIndex].results.splice(0, 1)[0];
+        prunedData.results.push(nextResult);
+    }
+    return prunedData;
+}
+
 function fetchLive($loading) {
     if($loading){
         $("#repos").css("opacity", "0.5");
         $("#loading").css("display", "block");
     }
+
     $timeframe =  $("#trendingSelect").val();
     $lang = $("#langSelect").val();
     $id = $lang + "-" + $timeframe; 
     $now = new Date();
-    $.getJSON("http://anmolmago.com/GithubTrending.php?timeframe=" + $timeframe + "&language=" + $lang, function (data) {
-        if (!('results' in data) || data['results'].length === 0) {
-            data = JSON.parse(localStorage.getItem($id + "Cache"));
-            if (!('results' in data) || data['results'].length === 0) {
-                data = JSON.parse(localStorage.getItem("dailyCache"));//last hope
-            }
-        } else {
-            localStorage.setItem($id + "Cache", JSON.stringify(data));
-            localStorage.setItem($id + "CacheTimeSet", $now.getDOY() + "-" + $now.getHours());
-        }
-        printEm(data);
-    }).fail(function(){
-        $data = JSON.parse(localStorage.getItem($id + "Cache"));
-        if ($data === null || !('results' in $data) || $data['results'].length === 0) {
-            $data = JSON.parse(localStorage.getItem("all-dailyCache"));//last hope
-        }
-        if ($data !== null) {
-            printEm($data);
-        }
+
+    console.log("$lang is:");
+    console.log($lang);
+
+    chrome.storage.sync.set({foo: ["bar", "baz"]}, function() {
+        // Notify that we saved.
+        console.log('Settings saved');
     });
+
+    chrome.storage.sync.get({
+        foo: "nothing"
+    }, function(items) {
+        console.log("foo is " + items.foo);
+    });
+
+    // localStorage.setItem("foo", ["bar", "baz"]);
+    // var foo = localStorage.getItem("foo");
+    // console.log("foo is " + foo);
+
+    var responses = [];
+    var promises = [];
+    if ($lang) {
+        $lang.forEach(function(l) {
+            var url = "http://anmolmago.com/GithubTrending.php?timeframe=" + $timeframe + "&language=" + l;
+            var p = $.getJSON(url, function (data) { responses.push(data); });
+            promises.push(p);
+        });
+
+        $.when.apply(null, promises)
+            .done(function(data) {
+                console.log("there are " + responses.length + " responses");
+                console.log("responses:\n");
+                console.log(responses);
+                var prunedData = prune(responses);
+                console.log("pruned data:");
+                console.log(prunedData);
+                printEm(prunedData);
+            });
+    }
+
+    // $.getJSON("http://anmolmago.com/GithubTrending.php?timeframe=" + $timeframe + "&language=" + $lang/*($lang.length === 0 ? null : $lang[0])*/, function (data) {
+    //     if (!('results' in data) || data['results'].length === 0) {
+    //         data = JSON.parse(localStorage.getItem($id + "Cache"));
+    //         if (!('results' in data) || data['results'].length === 0) {
+    //             data = JSON.parse(localStorage.getItem("dailyCache"));//last hope
+    //         }
+    //     } else {
+    //         localStorage.setItem($id + "Cache", JSON.stringify(data));
+    //         localStorage.setItem($id + "CacheTimeSet", $now.getDOY() + "-" + $now.getHours());
+    //     }
+    //     printEm(data);
+    // }).fail(function(){
+    //     $data = JSON.parse(localStorage.getItem($id + "Cache"));
+    //     if ($data === null || !('results' in $data) || $data['results'].length === 0) {
+    //         $data = JSON.parse(localStorage.getItem("all-dailyCache"));//last hope
+    //     }
+    //     if ($data !== null) {
+    //         console.log("type of data is " + Object.prototype.toString.call($data));
+    //         console.log($data)
+    //         printEm($data);
+    //     }
+    // });
 }
 
 function init() {
@@ -118,6 +173,10 @@ function fetch($loading) {
         $("#repos").css("opacity", "0.5");
         $("#loading").css("display", "block");
     }
+
+    // console.log("langSelect is type " + Object.prototype.toString.call($("#langSelect").val()));
+    // console.log("langSelect is {" + $("#langSelect").val() + "}");
+
     $id = $("#langSelect").val() + "-" + $("#trendingSelect").val();
     $data = JSON.parse(localStorage.getItem($id + "Cache"));
     $TimeSet = localStorage.getItem($id + "CacheTimeSet");
